@@ -30,7 +30,8 @@ router.route('/').post(async (req, res) => {
     const { prompt } = req.body;
 
     // Make an asynchronous request to the OpenAI API to create an image
-    const response = await openai.createImage({
+    const response = await openai.images.generate({
+      model: "dall-e-3",
       prompt,
       n: 1,
       size: '1024x1024',
@@ -43,11 +44,15 @@ router.route('/').post(async (req, res) => {
     // Respond with the base64-encoded image in a JSON object
     res.status(200).json({ photo: image });
   } catch (error) {
-    // Handle errors by logging to the console and responding with a 500 status
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    if (error.response && error.response.status === 400 && error.response.data.code === 'billing_hard_limit_reached') {
+      // Handle billing limit error
+      res.status(400).json({ error: 'Billing hard limit reached. Please check your usage and billing status.' });
+    } else {
+      // Handle other errors
+      console.error(error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
   }
 });
-
 // Export the router for use in other parts of the application
 export default router;
